@@ -7,6 +7,10 @@ import android.appwidget.AppWidgetProvider;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.media.Image;
 import android.net.Uri;
 import android.os.Build;
@@ -17,6 +21,7 @@ import android.widget.ImageView;
 import android.widget.RemoteViews;
 import android.widget.Toast;
 
+import java.io.InputStream;
 import java.util.Random;
 
 import static android.content.ContentValues.TAG;
@@ -60,10 +65,11 @@ public class Widget extends AppWidgetProvider {
                 RemoteViews control = new RemoteViews(context.getPackageName(), R.layout.widget);
 
                 // Get uri's image and render to bitmap (idk why it;s not work by using setImageViewUri()
-                Bitmap bitmap = MediaStore.Images.Media.getBitmap(context.getContentResolver(), imgUri);
+                Bitmap raw_bitmap = MediaStore.Images.Media.getBitmap(context.getContentResolver(), imgUri);
+                Bitmap bitmap = this.scaleBitmap(raw_bitmap, raw_bitmap.getWidth()/2, raw_bitmap.getHeight()/2);
 
                 // Update to the widget
-                control.setImageViewBitmap(R.id.widget_image,bitmap);
+                control.setImageViewBitmap(R.id.widget_image, bitmap);
                 AppWidgetManager.getInstance(context).updateAppWidget(widgetId, control);
 
             }catch (Exception ex){
@@ -73,5 +79,16 @@ public class Widget extends AppWidgetProvider {
             Log.d(TAG, "[Receive] Action is not Update (Move action? etc.)");
         }
         super.onReceive(context, intent);
+    }
+
+    public Bitmap scaleBitmap(Bitmap bitmap, int wantedWidth, int wantedHeight) {
+        Bitmap output = Bitmap.createBitmap(wantedWidth, wantedHeight, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(output);
+        // Using matrix as parameter
+        Matrix m = new Matrix();
+        m.setScale((float) wantedWidth / bitmap.getWidth(), (float) wantedHeight / bitmap.getHeight());
+        // Redraw bitmap using canvas
+        canvas.drawBitmap(bitmap, m, new Paint(6));
+        return output;
     }
 }
