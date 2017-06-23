@@ -23,7 +23,9 @@
         <activity android:name=".ImagePicker">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
+                <!-- Remove this line may make android studio cannot run the app,
+                you should set default Launch option to 'nothing' in Run/Debug Configuration-->
+                <!--<category android:name="android.intent.category.HOME" />-->
             </intent-filter>
         </activity>
     </application>
