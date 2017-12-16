@@ -32,7 +32,7 @@ import static android.support.v4.app.ActivityCompat.startActivityForResult;
  */
 
 
-/**
+/**ex
  * Implementation of App Widget functionality.
  */
 public class Widget extends AppWidgetProvider {
@@ -66,10 +66,11 @@ public class Widget extends AppWidgetProvider {
 
                 // Get uri's image and render to bitmap (idk why it;s not work by using setImageViewUri()
                 Bitmap raw_bitmap = MediaStore.Images.Media.getBitmap(context.getContentResolver(), imgUri);
-                Bitmap bitmap = this.scaleBitmap(raw_bitmap, raw_bitmap.getWidth()/2, raw_bitmap.getHeight()/2);
+//                Bitmap bitmap = this.scaleBitmap(raw_bitmap, raw_bitmap.getWidth(), raw_bitmap.getHeight());
 
                 // Update to the widget
-                control.setImageViewBitmap(R.id.widget_image, bitmap);
+//                control.setImageViewBitmap(R.id.widget_image, bitmap);
+                control.setImageViewBitmap(R.id.widget_image, raw_bitmap);
                 AppWidgetManager.getInstance(context).updateAppWidget(widgetId, control);
 
             }catch (Exception ex){
