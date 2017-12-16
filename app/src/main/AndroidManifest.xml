@@ -20,7 +20,7 @@
                 android:resource="@xml/widget_info" />
         </receiver>
 
-        <activity android:name=".ImagePicker">
+        <activity android:name=".ImagePicker"  android:theme="@style/AppTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <!-- Remove this line may make android studio cannot run the app,
