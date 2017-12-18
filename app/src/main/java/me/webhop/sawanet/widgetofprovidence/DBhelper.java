@@ -34,7 +34,7 @@ public class DBhelper extends SQLiteOpenHelper{
 
     public void addId(final int id){
         SQLiteDatabase db = getWritableDatabase();
-        db.execSQL("INSERT INTO widget (_id) VALUES (" + id + ");");
+        db.execSQL("INSERT OR IGNORE INTO widget (_id) VALUES (" + id + ");");
     }
 
     public void addPath(final int id, String uri){
@@ -46,6 +46,11 @@ public class DBhelper extends SQLiteOpenHelper{
         SQLiteDatabase db = getWritableDatabase();
         db.execSQL("DELETE FROM widget " +
                 "WHERE _id=" + id + ";");
+    }
+
+    public void qurey(){
+        SQLiteDatabase db = getWritableDatabase();
+
     }
 
     @Override

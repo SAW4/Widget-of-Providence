@@ -42,6 +42,7 @@ public class ImagePicker extends AppCompatActivity {
             widgetIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
             widgetIntent.putExtra("uri", uri.toString());
             Log.d(TAG, uri.toString());
+            Log.d(TAG, String.valueOf(appWidgetId));
             // Send bundle back to widget by using broadcast, widget's onReceive() can get it
             sendBroadcast(widgetIntent);
         }catch (NullPointerException ex){

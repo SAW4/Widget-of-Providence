@@ -31,26 +31,43 @@ public class Widget extends AppWidgetProvider {
     private static DBhelper helper;
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-            for (int appWidgetId : appWidgetIds) {
-                Log.d(TAG, "onUpdate called, widget id: " + appWidgetId);
+        if (helper == null)
+            helper = new DBhelper(context,"widgetOfProvidence.db",null,1);
+        for (int appWidgetId : appWidgetIds) {
+            // Check database, if records find then add set the image
+//            if (helper.query(appWidgetId)){ // appWidgetId exist, load image
+//                Intent intent = new Intent();
+//                intent.putExtra("appWidgetId", appWidgetId); // pass widget id (home screen can have many)
+//                intent.putExtra("path", path); // pass widget id (home screen can have many)
+//                // Pending intent is a intent that will not execute at once, but interact with onclick to the widget
+//                RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget);
+//                appWidgetManager.updateAppWidget(appWidgetId, views);
+//            }else {
                 Intent intent = new Intent(context, ImagePicker.class);
                 intent.putExtra("appWidgetId", appWidgetId); // pass widget id (home screen can have many)
                 helper.addId(appWidgetId); // Add created id to database
+                Log.d(TAG, "onUpdate called, widget id: " + appWidgetId + " Bind to onclick event.");
+
                 // Pending intent is a intent that will not execute at once, but interact with onclick to the widget
-                PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+                PendingIntent pendingIntent = PendingIntent.getActivity(context, appWidgetId, intent, 0);
                 RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget);
                 views.setOnClickPendingIntent(R.id.widget_layout, pendingIntent);
                 appWidgetManager.updateAppWidget(appWidgetId, views);
-            }
+//            }
+        }
     }
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        if (helper == null)
+            helper = new DBhelper(context,"widgetOfProvidence.db",null,1);
         if (intent.getAction().equals(AppWidgetManager.ACTION_APPWIDGET_UPDATE)) {
             try {
                 // Get back the selected image's uri and clicked widget's id
                 int widgetId = intent.getExtras().getInt(AppWidgetManager.EXTRA_APPWIDGET_ID);
-                String receiveData = intent.getExtras().getString("uri");
+                String receiveData;
+                // If record not find, add this new path
+                receiveData = intent.getExtras().getString("uri");
                 helper.addPath(widgetId,receiveData);
                 Log.d(TAG, "[Receive] widget id : " + String.valueOf(widgetId));
                 if (receiveData != null) {
@@ -95,6 +112,11 @@ public class Widget extends AppWidgetProvider {
     @Override
     public void onDeleted(Context context, int[] appWidgetIds) {
         super.onDeleted(context, appWidgetIds);
+        if(helper == null)
+            helper = new DBhelper(context,"widgetOfProvidence.db",null,1);;
+        for (int appWidgetId : appWidgetIds) {
+            helper.removeWidget(appWidgetId);
+        }
     }
 
     @Override
