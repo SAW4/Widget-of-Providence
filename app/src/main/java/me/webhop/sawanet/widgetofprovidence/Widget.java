@@ -5,6 +5,7 @@ import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -16,6 +17,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
+import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
@@ -40,9 +42,10 @@ public class Widget extends AppWidgetProvider {
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-            // Widget provider init
             for (int appWidgetId : appWidgetIds) {
                 Log.d(TAG, "onUpdate called, widget id: " + appWidgetId);
+
+
                 Intent intent = new Intent(context, ImagePicker.class);
                 intent.putExtra("appWidgetId", appWidgetId); // pass widget id (home screen can have many)
 
@@ -60,19 +63,22 @@ public class Widget extends AppWidgetProvider {
             try {
                 // Get back the selected image's uri and clicked widget's id
                 int widgetId = intent.getExtras().getInt(AppWidgetManager.EXTRA_APPWIDGET_ID);
-                Uri imgUri = Uri.parse(intent.getExtras().getString("uri"));
+                String receiveData = intent.getExtras().getString("uri");
+                if (receiveData != null) {
+                    Uri imgUri = Uri.parse(receiveData);
 
-                // Create a new remote view, change the image of it then update to the widget
-                RemoteViews control = new RemoteViews(context.getPackageName(), R.layout.widget);
+                    // Create a new remote view, change the image of it then update to the widget
+                    RemoteViews control = new RemoteViews(context.getPackageName(), R.layout.widget);
 
-                // Get uri's image and render to bitmap (idk why it;s not work by using setImageViewUri()
-                Bitmap raw_bitmap = MediaStore.Images.Media.getBitmap(context.getContentResolver(), imgUri);
+                    // Get uri's image and render to bitmap (idk why it;s not work by using setImageViewUri()
+                    Bitmap raw_bitmap = MediaStore.Images.Media.getBitmap(context.getContentResolver(), imgUri);
 //                Bitmap bitmap = this.scaleBitmap(raw_bitmap, raw_bitmap.getWidth(), raw_bitmap.getHeight());
 
-                // Update to the widget
+                    // Update to the widget
 //                control.setImageViewBitmap(R.id.widget_image, bitmap);
-                control.setImageViewBitmap(R.id.widget_image, raw_bitmap);
-                AppWidgetManager.getInstance(context).updateAppWidget(widgetId, control);
+                    control.setImageViewBitmap(R.id.widget_image, raw_bitmap);
+                    AppWidgetManager.getInstance(context).updateAppWidget(widgetId, control);
+                }
 
             }catch (Exception ex){
                ex.printStackTrace();
