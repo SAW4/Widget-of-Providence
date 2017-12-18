@@ -12,6 +12,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Point;
 import android.media.Image;
 import android.net.Uri;
 import android.os.Build;
@@ -19,6 +20,8 @@ import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
+import android.view.Display;
+import android.view.WindowManager;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
 import android.widget.RemoteViews;
@@ -64,6 +67,7 @@ public class Widget extends AppWidgetProvider {
                 // Get back the selected image's uri and clicked widget's id
                 int widgetId = intent.getExtras().getInt(AppWidgetManager.EXTRA_APPWIDGET_ID);
                 String receiveData = intent.getExtras().getString("uri");
+                Log.d(TAG, "[Receive] widget id : " + String.valueOf(widgetId));
                 if (receiveData != null) {
                     Uri imgUri = Uri.parse(receiveData);
 
@@ -72,14 +76,24 @@ public class Widget extends AppWidgetProvider {
 
                     // Get uri's image and render to bitmap (idk why it;s not work by using setImageViewUri()
                     Bitmap raw_bitmap = MediaStore.Images.Media.getBitmap(context.getContentResolver(), imgUri);
-//                Bitmap bitmap = this.scaleBitmap(raw_bitmap, raw_bitmap.getWidth(), raw_bitmap.getHeight());
 
-                    // Update to the widget
-//                control.setImageViewBitmap(R.id.widget_image, bitmap);
+                    WindowManager wm = (WindowManager)context.getSystemService(Context.WINDOW_SERVICE);
+                    assert wm != null;
+                    Display display = wm.getDefaultDisplay();
+                    Point size = new Point();
+                    display.getSize(size);
+                    int width = size.x;
+                    int height = size.y;
+                    if (raw_bitmap.getByteCount()>width*height*4*1.5){
+                        // compress here
+                        raw_bitmap = this.scaleBitmap(raw_bitmap, raw_bitmap.getWidth()/2, raw_bitmap.getHeight()/2);
+                    }
+                    Log.d(TAG, "Image size (byte) : " + raw_bitmap.getByteCount());
+                    Log.d(TAG, "Bitmap Byte Limit : " + String.format("%.2f", width*height*4*1.5));
+
                     control.setImageViewBitmap(R.id.widget_image, raw_bitmap);
                     AppWidgetManager.getInstance(context).updateAppWidget(widgetId, control);
                 }
-
             }catch (Exception ex){
                ex.printStackTrace();
             }
