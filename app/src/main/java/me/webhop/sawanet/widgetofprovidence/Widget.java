@@ -1,37 +1,23 @@
 package me.webhop.sawanet.widgetofprovidence;
 
-import android.annotation.TargetApi;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
+import android.content.ContentValues;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Point;
-import android.media.Image;
 import android.net.Uri;
-import android.os.Build;
 import android.provider.MediaStore;
-import android.support.annotation.NonNull;
-import android.support.v7.app.AlertDialog;
 import android.util.Log;
 import android.view.Display;
 import android.view.WindowManager;
-import android.widget.ImageView;
-import android.widget.PopupMenu;
 import android.widget.RemoteViews;
-import android.widget.Toast;
-
-import java.io.InputStream;
-import java.util.Random;
-
 import static android.content.ContentValues.TAG;
-import static android.support.v4.app.ActivityCompat.startActivityForResult;
 
 /**
  * Created by sawa on 6/22/17.
@@ -42,16 +28,14 @@ import static android.support.v4.app.ActivityCompat.startActivityForResult;
  * Implementation of App Widget functionality.
  */
 public class Widget extends AppWidgetProvider {
-
+    private static DBhelper helper;
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
             for (int appWidgetId : appWidgetIds) {
                 Log.d(TAG, "onUpdate called, widget id: " + appWidgetId);
-
-
                 Intent intent = new Intent(context, ImagePicker.class);
                 intent.putExtra("appWidgetId", appWidgetId); // pass widget id (home screen can have many)
-
+                helper.addId(appWidgetId); // Add created id to database
                 // Pending intent is a intent that will not execute at once, but interact with onclick to the widget
                 PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_UPDATE_CURRENT);
                 RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget);
@@ -67,6 +51,7 @@ public class Widget extends AppWidgetProvider {
                 // Get back the selected image's uri and clicked widget's id
                 int widgetId = intent.getExtras().getInt(AppWidgetManager.EXTRA_APPWIDGET_ID);
                 String receiveData = intent.getExtras().getString("uri");
+                helper.addPath(widgetId,receiveData);
                 Log.d(TAG, "[Receive] widget id : " + String.valueOf(widgetId));
                 if (receiveData != null) {
                     Uri imgUri = Uri.parse(receiveData);
@@ -76,7 +61,6 @@ public class Widget extends AppWidgetProvider {
 
                     // Get uri's image and render to bitmap (idk why it;s not work by using setImageViewUri()
                     Bitmap raw_bitmap = MediaStore.Images.Media.getBitmap(context.getContentResolver(), imgUri);
-
                     WindowManager wm = (WindowManager)context.getSystemService(Context.WINDOW_SERVICE);
                     assert wm != null;
                     Display display = wm.getDefaultDisplay();
@@ -88,9 +72,8 @@ public class Widget extends AppWidgetProvider {
                         // compress here
                         raw_bitmap = this.scaleBitmap(raw_bitmap, raw_bitmap.getWidth()/2, raw_bitmap.getHeight()/2);
                     }
-                    Log.d(TAG, "Image size (byte) : " + raw_bitmap.getByteCount());
-                    Log.d(TAG, "Bitmap Byte Limit : " + String.format("%.2f", width*height*4*1.5));
-
+//                    Log.d(TAG, "Image size (byte) : " + raw_bitmap.getByteCount());
+//                    Log.d(TAG, "Bitmap Byte Limit : " + String.format("%.2f", width*height*4*1.5));
                     control.setImageViewBitmap(R.id.widget_image, raw_bitmap);
                     AppWidgetManager.getInstance(context).updateAppWidget(widgetId, control);
                 }
@@ -98,9 +81,26 @@ public class Widget extends AppWidgetProvider {
                ex.printStackTrace();
             }
         }else{
-            Log.d(TAG, "[Receive] Action is not Update (Move action? etc.)");
+//            Log.d(TAG, "[Receive] Action is not Update (Move action? etc.)");
         }
         super.onReceive(context, intent);
+    }
+
+    @Override
+    public void onEnabled(Context context){
+        helper = new DBhelper(context,"widgetOfProvidence.db",null,1);;
+        Log.d(TAG, "onEnabled called, SQLite database created : " + helper.getDatabaseName() +  helper.getWritableDatabase().getPath());
+    }
+
+    @Override
+    public void onDeleted(Context context, int[] appWidgetIds) {
+        super.onDeleted(context, appWidgetIds);
+    }
+
+    @Override
+    public void onDisabled(Context context) {
+        super.onDisabled(context);
+        helper.dropAllRecords();
     }
 
     public Bitmap scaleBitmap(Bitmap bitmap, int wantedWidth, int wantedHeight) {
