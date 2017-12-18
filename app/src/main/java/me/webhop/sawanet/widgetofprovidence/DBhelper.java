@@ -1,6 +1,7 @@
 package me.webhop.sawanet.widgetofprovidence;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
@@ -48,9 +49,27 @@ public class DBhelper extends SQLiteOpenHelper{
                 "WHERE _id=" + id + ";");
     }
 
-    public void qurey(){
+    public boolean query(final int id){
+        boolean found = false;
         SQLiteDatabase db = getWritableDatabase();
+        Cursor cursor = db.rawQuery("SELECT _id FROM widget WHERE _id = " + id, null);
+        if(cursor!=null && cursor.getCount()>0) {
+            found = true;
+            cursor.close();
+        }
+        return found;
+    }
 
+    public String getPath(final int id){
+        String result = null;
+        SQLiteDatabase db = getWritableDatabase();
+        Cursor cursor = db.rawQuery("SELECT path FROM widget WHERE _id = " + id, null);
+        if(cursor!=null && cursor.getCount()>0 &&  cursor.moveToFirst()) {
+            result = cursor.getString(cursor.getColumnIndex("path"));
+            Log.d(TAG, "getPath() result: " + result);
+            cursor.close();
+        }
+        return result;
     }
 
     @Override

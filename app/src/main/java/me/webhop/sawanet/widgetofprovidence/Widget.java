@@ -3,6 +3,7 @@ package me.webhop.sawanet.widgetofprovidence;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
@@ -12,6 +13,7 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.net.Uri;
+import android.os.Build;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Display;
@@ -35,14 +37,22 @@ public class Widget extends AppWidgetProvider {
             helper = new DBhelper(context,"widgetOfProvidence.db",null,1);
         for (int appWidgetId : appWidgetIds) {
             // Check database, if records find then add set the image
-//            if (helper.query(appWidgetId)){ // appWidgetId exist, load image
-//                Intent intent = new Intent();
-//                intent.putExtra("appWidgetId", appWidgetId); // pass widget id (home screen can have many)
-//                intent.putExtra("path", path); // pass widget id (home screen can have many)
-//                // Pending intent is a intent that will not execute at once, but interact with onclick to the widget
-//                RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget);
-//                appWidgetManager.updateAppWidget(appWidgetId, views);
-//            }else {
+            if (helper.query(appWidgetId)){ // appWidgetId exist, load image
+                Intent widgetIntent = new Intent(Intent.ACTION_GET_CONTENT);
+                widgetIntent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+                widgetIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+                String uri = helper.getPath(appWidgetId);
+                if (uri != null) {
+                    widgetIntent.putExtra("uri", uri);
+                    // Send bundle back to widget by using broadcast, widget's onReceive() can get it
+                    context.sendBroadcast(widgetIntent);
+                    // Pending intent is a intent that will not execute at once, but interact with onclick to the widget
+                    RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget);
+                    appWidgetManager.updateAppWidget(appWidgetId, views);
+                    Log.d(TAG, "update already existed widget.");
+                }
+            }
+            else {
                 Intent intent = new Intent(context, ImagePicker.class);
                 intent.putExtra("appWidgetId", appWidgetId); // pass widget id (home screen can have many)
                 helper.addId(appWidgetId); // Add created id to database
@@ -53,7 +63,7 @@ public class Widget extends AppWidgetProvider {
                 RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget);
                 views.setOnClickPendingIntent(R.id.widget_layout, pendingIntent);
                 appWidgetManager.updateAppWidget(appWidgetId, views);
-//            }
+            }
         }
     }
 
@@ -65,17 +75,14 @@ public class Widget extends AppWidgetProvider {
             try {
                 // Get back the selected image's uri and clicked widget's id
                 int widgetId = intent.getExtras().getInt(AppWidgetManager.EXTRA_APPWIDGET_ID);
-                String receiveData;
                 // If record not find, add this new path
-                receiveData = intent.getExtras().getString("uri");
+                String receiveData = intent.getExtras().getString("uri");
                 helper.addPath(widgetId,receiveData);
-                Log.d(TAG, "[Receive] widget id : " + String.valueOf(widgetId));
                 if (receiveData != null) {
                     Uri imgUri = Uri.parse(receiveData);
-
                     // Create a new remote view, change the image of it then update to the widget
                     RemoteViews control = new RemoteViews(context.getPackageName(), R.layout.widget);
-
+                    Log.d(TAG, "[Receive] widget id : " + String.valueOf(widgetId) + " Uri= " + imgUri);
                     // Get uri's image and render to bitmap (idk why it;s not work by using setImageViewUri()
                     Bitmap raw_bitmap = MediaStore.Images.Media.getBitmap(context.getContentResolver(), imgUri);
                     WindowManager wm = (WindowManager)context.getSystemService(Context.WINDOW_SERVICE);
