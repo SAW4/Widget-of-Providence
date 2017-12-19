@@ -8,6 +8,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
@@ -19,6 +20,13 @@ import android.util.Log;
 import android.view.Display;
 import android.view.WindowManager;
 import android.widget.RemoteViews;
+
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
+
 import static android.content.ContentValues.TAG;
 
 /**
@@ -38,8 +46,9 @@ public class Widget extends AppWidgetProvider {
         for (int appWidgetId : appWidgetIds) {
             // Check database, if records find then add set the image
             if (helper.query(appWidgetId)){ // appWidgetId exist, load image
-                Intent widgetIntent = new Intent(Intent.ACTION_GET_CONTENT);
+                Intent widgetIntent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
                 widgetIntent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+//                widgetIntent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 widgetIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
                 String uri = helper.getPath(appWidgetId);
                 if (uri != null) {
