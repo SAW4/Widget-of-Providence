@@ -3,9 +3,11 @@ package me.webhop.sawanet.widgetofprovidence;
 import android.app.Activity;
 import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -19,9 +21,17 @@ public class ImagePicker extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         // Create a image picker intent
-        Intent img_picker = new Intent();
+        Intent img_picker;
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT){
+            img_picker = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            img_picker.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
+            img_picker.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+        }else{
+            img_picker = new Intent(Intent.ACTION_GET_CONTENT);
+        }
+        img_picker.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
+        img_picker.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         img_picker.setType("image/*");
-        img_picker.setAction(Intent.ACTION_GET_CONTENT);
         startActivityForResult(Intent.createChooser(img_picker, "Select Picture"), 0);
         setContentView(R.layout.activity_image_picker);
     }
@@ -32,7 +42,10 @@ public class ImagePicker extends AppCompatActivity {
             // get the selected result (img uri)
             Uri uri = data.getData();
             Intent intent = getIntent();
-
+            final int takeFlags = data.getFlags() & Intent.FLAG_GRANT_READ_URI_PERMISSION;
+            ContentResolver resolver = getContentResolver();
+            assert uri != null;
+            resolver.takePersistableUriPermission(uri, takeFlags);
             // get widget id and image uri
             int appWidgetId = intent.getIntExtra("appWidgetId", -1);
 

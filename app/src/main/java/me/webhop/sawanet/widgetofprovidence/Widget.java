@@ -1,44 +1,35 @@
 package me.webhop.sawanet.widgetofprovidence;
 
+import android.annotation.SuppressLint;
 import android.app.PendingIntent;
 import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
-import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Point;
 import android.net.Uri;
-import android.os.Build;
-import android.provider.MediaStore;
 import android.util.Log;
 import android.view.Display;
 import android.view.WindowManager;
 import android.widget.RemoteViews;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.net.URLConnection;
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.target.AppWidgetTarget;
+import com.bumptech.glide.request.transition.Transition;
 
 import static android.content.ContentValues.TAG;
-
-/**
- * Created by sawa on 6/22/17.
- */
-
 
 /**ex
  * Implementation of App Widget functionality.
  */
 public class Widget extends AppWidgetProvider {
     private static DBhelper helper;
+    private AppWidgetTarget appWidgetTarget;
+
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         if (helper == null)
@@ -48,17 +39,11 @@ public class Widget extends AppWidgetProvider {
             if (helper.query(appWidgetId)){ // appWidgetId exist, load image
                 Intent widgetIntent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
                 widgetIntent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
-//                widgetIntent.setFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                 widgetIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
                 String uri = helper.getPath(appWidgetId);
                 if (uri != null) {
                     widgetIntent.putExtra("uri", uri);
-                    // Send bundle back to widget by using broadcast, widget's onReceive() can get it
-                    context.sendBroadcast(widgetIntent);
-                    // Pending intent is a intent that will not execute at once, but interact with onclick to the widget
-                    RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget);
-                    appWidgetManager.updateAppWidget(appWidgetId, views);
-                    Log.d(TAG, "update already existed widget.");
+                    onReceive(context, widgetIntent);
                 }
             }
             else {
@@ -77,7 +62,7 @@ public class Widget extends AppWidgetProvider {
     }
 
     @Override
-    public void onReceive(Context context, Intent intent) {
+    public void onReceive(final Context context, Intent intent) {
         if (helper == null)
             helper = new DBhelper(context,"widgetOfProvidence.db",null,1);
         if (intent.getAction().equals(AppWidgetManager.ACTION_APPWIDGET_UPDATE)) {
@@ -92,29 +77,29 @@ public class Widget extends AppWidgetProvider {
                     // Create a new remote view, change the image of it then update to the widget
                     RemoteViews control = new RemoteViews(context.getPackageName(), R.layout.widget);
                     Log.d(TAG, "[Receive] widget id : " + String.valueOf(widgetId) + " Uri= " + imgUri);
-                    // Get uri's image and render to bitmap (idk why it;s not work by using setImageViewUri()
-                    Bitmap raw_bitmap = MediaStore.Images.Media.getBitmap(context.getContentResolver(), imgUri);
-                    WindowManager wm = (WindowManager)context.getSystemService(Context.WINDOW_SERVICE);
-                    assert wm != null;
-                    Display display = wm.getDefaultDisplay();
-                    Point size = new Point();
-                    display.getSize(size);
-                    int width = size.x;
-                    int height = size.y;
-                    if (raw_bitmap.getByteCount()>width*height*4*1.5){
-                        // compress here
-                        raw_bitmap = this.scaleBitmap(raw_bitmap, raw_bitmap.getWidth()/2, raw_bitmap.getHeight()/2);
-                    }
-//                    Log.d(TAG, "Image size (byte) : " + raw_bitmap.getByteCount());
-//                    Log.d(TAG, "Bitmap Byte Limit : " + String.format("%.2f", width*height*4*1.5));
-                    control.setImageViewBitmap(R.id.widget_image, raw_bitmap);
+                    appWidgetTarget = new AppWidgetTarget(context, R.id.widget_image, control, widgetId) {
+                        @Override
+                        public void onResourceReady(Bitmap resource, Transition<? super Bitmap> transition) {
+                            WindowManager wm = (WindowManager)context.getSystemService(Context.WINDOW_SERVICE);
+                            assert wm != null;
+                            Display display = wm.getDefaultDisplay();
+                            Point size = new Point();
+                            display.getSize(size);
+                            int width = size.x;
+                            int height = size.y;
+                            if (resource.getByteCount()>width*height*4*1.5){
+                                // compress or resize here
+                                resource = scaleBitmap(resource, resource.getWidth()/2, resource.getHeight()/2);
+                            }
+                            super.onResourceReady(resource, transition);
+                        }
+                    };
+                    Glide.with(context).asBitmap().load(imgUri).into(appWidgetTarget);
                     AppWidgetManager.getInstance(context).updateAppWidget(widgetId, control);
                 }
             }catch (Exception ex){
                ex.printStackTrace();
             }
-        }else{
-//            Log.d(TAG, "[Receive] Action is not Update (Move action? etc.)");
         }
         super.onReceive(context, intent);
     }

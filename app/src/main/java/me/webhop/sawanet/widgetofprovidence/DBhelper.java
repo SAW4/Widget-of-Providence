@@ -66,7 +66,6 @@ public class DBhelper extends SQLiteOpenHelper{
         Cursor cursor = db.rawQuery("SELECT path FROM widget WHERE _id = " + id, null);
         if(cursor!=null && cursor.getCount()>0 &&  cursor.moveToFirst()) {
             result = cursor.getString(cursor.getColumnIndex("path"));
-            Log.d(TAG, "getPath() result: " + result);
             cursor.close();
         }
         return result;
