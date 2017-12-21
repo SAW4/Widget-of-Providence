@@ -32,37 +32,35 @@ public class Widget extends AppWidgetProvider {
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
+        boolean exist = false;
         if (helper == null)
             helper = new DBhelper(context,"widgetOfProvidence.db",null,1);
         for (int appWidgetId : appWidgetIds) {
-            // Check database, if records find then add set the image
-            if (helper.query(appWidgetId)){ // appWidgetId exist, load image
-                Intent widgetIntent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                widgetIntent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
-                widgetIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
+            Intent intent = new Intent(context, ImagePicker.class);
+            intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
+            intent.putExtra("appWidgetId", appWidgetId); // pass widget id (home screen can have many)
+            if (helper.query(appWidgetId)) { // appWidgetId exist, load image
+                exist = true;
                 String uri = helper.getPath(appWidgetId);
-                if (uri != null) {
-                    widgetIntent.putExtra("uri", uri);
-                    onReceive(context, widgetIntent);
-                }
-            }
-            else {
-                Intent intent = new Intent(context, ImagePicker.class);
-                intent.putExtra("appWidgetId", appWidgetId); // pass widget id (home screen can have many)
+                if (uri != null)
+                    intent.putExtra("uri", uri);
+                intent.putExtra("exist",true);
+            }else{
                 helper.addId(appWidgetId); // Add created id to database
-                Log.d(TAG, "onUpdate called, widget id: " + appWidgetId + " Bind to onclick event.");
-
-                // Pending intent is a intent that will not execute at once, but interact with onclick to the widget
-                PendingIntent pendingIntent = PendingIntent.getActivity(context, appWidgetId, intent, 0);
-                RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget);
-                views.setOnClickPendingIntent(R.id.widget_layout, pendingIntent);
-                appWidgetManager.updateAppWidget(appWidgetId, views);
             }
+            Log.d(TAG, "onUpdate called, widget id: " + appWidgetId + " Bind to onclick event.");
+            // Pending intent is a intent that will not execute at once, but interact with onclick to the widget
+            PendingIntent pendingIntent = PendingIntent.getActivity(context, appWidgetId, intent, 0);
+            RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget);
+            views.setOnClickPendingIntent(R.id.widget_layout, pendingIntent);
+            if (exist) onReceive(context, intent);
+            appWidgetManager.updateAppWidget(appWidgetId, views);
         }
     }
 
     @Override
     public void onReceive(final Context context, Intent intent) {
+        super.onReceive(context, intent);
         if (helper == null)
             helper = new DBhelper(context,"widgetOfProvidence.db",null,1);
         if (intent.getAction().equals(AppWidgetManager.ACTION_APPWIDGET_UPDATE)) {
@@ -71,6 +69,7 @@ public class Widget extends AppWidgetProvider {
                 int widgetId = intent.getExtras().getInt(AppWidgetManager.EXTRA_APPWIDGET_ID);
                 // If record not find, add this new path
                 String receiveData = intent.getExtras().getString("uri");
+                Log.d(TAG, "onReceive called, unpacking data");
                 helper.addPath(widgetId,receiveData);
                 if (receiveData != null) {
                     Uri imgUri = Uri.parse(receiveData);
@@ -95,13 +94,17 @@ public class Widget extends AppWidgetProvider {
                         }
                     };
                     Glide.with(context).asBitmap().load(imgUri).into(appWidgetTarget);
+                    if (intent.getExtras().getBoolean("exist")){
+                        PendingIntent pendingIntent = PendingIntent.getActivity(context, widgetId, intent, 0);
+                        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget);
+                        views.setOnClickPendingIntent(R.id.widget_layout, pendingIntent);
+                    }
                     AppWidgetManager.getInstance(context).updateAppWidget(widgetId, control);
                 }
             }catch (Exception ex){
                ex.printStackTrace();
             }
         }
-        super.onReceive(context, intent);
     }
 
     @Override

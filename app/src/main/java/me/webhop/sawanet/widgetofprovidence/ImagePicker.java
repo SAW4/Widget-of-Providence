@@ -38,27 +38,24 @@ public class ImagePicker extends AppCompatActivity {
 
     @Override
     public void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
+        switch (resultCode) {
+            case RESULT_CANCELED:finish(); return;
+        }
         try {
             // get the selected result (img uri)
             Uri uri = data.getData();
             Intent intent = getIntent();
-            final int takeFlags = data.getFlags() & Intent.FLAG_GRANT_READ_URI_PERMISSION;
-            ContentResolver resolver = getContentResolver();
             assert uri != null;
-            resolver.takePersistableUriPermission(uri, takeFlags);
             // get widget id and image uri
             int appWidgetId = intent.getIntExtra("appWidgetId", -1);
-
             // create intent to pass data back to widget (update)
             Intent widgetIntent = new Intent(this, Widget.class);
             widgetIntent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
             widgetIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
             widgetIntent.putExtra("uri", uri.toString());
-            Log.d(TAG, uri.toString());
-            Log.d(TAG, String.valueOf(appWidgetId));
             // Send bundle back to widget by using broadcast, widget's onReceive() can get it
             sendBroadcast(widgetIntent);
-        }catch (NullPointerException ex){
+        } catch (NullPointerException ex) {
             ex.printStackTrace();
         }
         finish();

@@ -31,22 +31,26 @@ public class DBhelper extends SQLiteOpenHelper{
     public void dropAllRecords(){
         SQLiteDatabase db = getWritableDatabase();
         db.execSQL("DELETE FROM widget");
+        db.close();
     }
 
     public void addId(final int id){
         SQLiteDatabase db = getWritableDatabase();
         db.execSQL("INSERT OR IGNORE INTO widget (_id) VALUES (" + id + ");");
+        db.close();
     }
 
     public void addPath(final int id, String uri){
         SQLiteDatabase db = getWritableDatabase();
         db.execSQL("UPDATE widget SET path = \"" + uri + "\" WHERE _id = " + id);
+        db.close();
     }
 
     public void removeWidget(final int id){
         SQLiteDatabase db = getWritableDatabase();
         db.execSQL("DELETE FROM widget " +
                 "WHERE _id=" + id + ";");
+        db.close();
     }
 
     public boolean query(final int id){
