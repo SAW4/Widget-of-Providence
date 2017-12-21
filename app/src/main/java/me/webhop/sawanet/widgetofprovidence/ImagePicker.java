@@ -39,7 +39,7 @@ public class ImagePicker extends AppCompatActivity {
     @Override
     public void onActivityResult(final int requestCode, final int resultCode, final Intent data) {
         switch (resultCode) {
-            case RESULT_CANCELED:finish(); return;
+            case RESULT_CANCELED:finishAndRemoveTask(); return;
         }
         try {
             // get the selected result (img uri)
@@ -58,6 +58,6 @@ public class ImagePicker extends AppCompatActivity {
         } catch (NullPointerException ex) {
             ex.printStackTrace();
         }
-        finish();
+        finishAndRemoveTask();
     }
 }

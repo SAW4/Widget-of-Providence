@@ -20,7 +20,9 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_info" />
         </receiver>
-        <activity android:name=".ImagePicker"  android:theme="@style/AppTheme">
+        <activity android:name=".ImagePicker"
+            android:theme="@style/AppTheme"
+            android:autoRemoveFromRecents="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <!-- Remove this line may make android studio cannot run the app,
