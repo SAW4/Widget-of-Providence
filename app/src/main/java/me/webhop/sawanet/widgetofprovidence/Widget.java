@@ -11,49 +11,103 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Point;
+import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.util.Log;
 import android.view.Display;
 import android.view.WindowManager;
+import android.widget.ImageView;
 import android.widget.RemoteViews;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.request.RequestOptions;
 import com.bumptech.glide.request.target.AppWidgetTarget;
 import com.bumptech.glide.request.transition.Transition;
 
 import static android.content.ContentValues.TAG;
 
+
+
+
 /**ex
  * Implementation of App Widget functionality.
  */
 public class Widget extends AppWidgetProvider {
-    private static DBhelper helper;
     private AppWidgetTarget appWidgetTarget;
+    /**
+     * @param bitmap the Bitmap to be scaled
+     * @param threshold the maxium dimension (either width or height) of the scaled bitmap
+     * @param isNecessaryToKeepOrig is it necessary to keep the original bitmap? If not recycle the original bitmap to prevent memory leak.
+     * */
 
+    public static Bitmap getScaledDownBitmap(Bitmap bitmap, int threshold, boolean isNecessaryToKeepOrig){
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        int newWidth = width;
+        int newHeight = height;
+
+        if(width > height && width > threshold){
+            newWidth = threshold;
+            newHeight = (int)(height * (float)newWidth/width);
+        }
+
+        if(width > height && width <= threshold){
+            //the bitmap is already smaller than our required dimension, no need to resize it
+            return bitmap;
+        }
+
+        if(width < height && height > threshold){
+            newHeight = threshold;
+            newWidth = (int)(width * (float)newHeight/height);
+        }
+
+        if(width < height && height <= threshold){
+            //the bitmap is already smaller than our required dimension, no need to resize it
+            return bitmap;
+        }
+
+        if(width == height && width > threshold){
+            newWidth = threshold;
+            newHeight = newWidth;
+        }
+
+        if(width == height && width <= threshold){
+            //the bitmap is already smaller than our required dimension, no need to resize it
+            return bitmap;
+        }
+
+        return getResizedBitmap(bitmap, newWidth, newHeight, isNecessaryToKeepOrig);
+    }
+
+    private static Bitmap getResizedBitmap(Bitmap bm, int newWidth, int newHeight, boolean isNecessaryToKeepOrig) {
+        int width = bm.getWidth();
+        int height = bm.getHeight();
+        float scaleWidth = ((float) newWidth) / width;
+        float scaleHeight = ((float) newHeight) / height;
+        // CREATE A MATRIX FOR THE MANIPULATION
+        Matrix matrix = new Matrix();
+        // RESIZE THE BIT MAP
+        matrix.postScale(scaleWidth, scaleHeight);
+
+        // "RECREATE" THE NEW BITMAP
+        Bitmap resizedBitmap = Bitmap.createBitmap(bm, 0, 0, width, height, matrix, false);
+        if(!isNecessaryToKeepOrig){
+            bm.recycle();
+        }
+        return resizedBitmap;
+    }
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-        boolean exist = false;
-        if (helper == null)
-            helper = new DBhelper(context,"widgetOfProvidence.db",null,1);
         for (int appWidgetId : appWidgetIds) {
             Intent intent = new Intent(context, ImagePicker.class);
             intent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
             intent.putExtra("appWidgetId", appWidgetId); // pass widget id (home screen can have many)
-            if (helper.query(appWidgetId)) { // appWidgetId exist, load image
-                exist = true;
-                String uri = helper.getPath(appWidgetId);
-                if (uri != null)
-                    intent.putExtra("uri", uri);
-                intent.putExtra("exist",true);
-            }else{
-                helper.addId(appWidgetId); // Add created id to database
-            }
             Log.d(TAG, "onUpdate called, widget id: " + appWidgetId + " Bind to onclick event.");
             // Pending intent is a intent that will not execute at once, but interact with onclick to the widget
             PendingIntent pendingIntent = PendingIntent.getActivity(context, appWidgetId, intent, 0);
             RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget);
             views.setOnClickPendingIntent(R.id.widget_layout, pendingIntent);
-            if (exist) onReceive(context, intent);
             appWidgetManager.updateAppWidget(appWidgetId, views);
         }
     }
@@ -61,8 +115,6 @@ public class Widget extends AppWidgetProvider {
     @Override
     public void onReceive(final Context context, Intent intent) {
         super.onReceive(context, intent);
-        if (helper == null)
-            helper = new DBhelper(context,"widgetOfProvidence.db",null,1);
         if (intent.getAction().equals(AppWidgetManager.ACTION_APPWIDGET_UPDATE)) {
             try {
                 // Get back the selected image's uri and clicked widget's id
@@ -70,35 +122,25 @@ public class Widget extends AppWidgetProvider {
                 // If record not find, add this new path
                 String receiveData = intent.getExtras().getString("uri");
                 Log.d(TAG, "onReceive called, unpacking data");
-                helper.addPath(widgetId,receiveData);
                 if (receiveData != null) {
                     Uri imgUri = Uri.parse(receiveData);
                     // Create a new remote view, change the image of it then update to the widget
                     RemoteViews control = new RemoteViews(context.getPackageName(), R.layout.widget);
                     Log.d(TAG, "[Receive] widget id : " + String.valueOf(widgetId) + " Uri= " + imgUri);
+
                     appWidgetTarget = new AppWidgetTarget(context, R.id.widget_image, control, widgetId) {
                         @Override
                         public void onResourceReady(Bitmap resource, Transition<? super Bitmap> transition) {
-                            WindowManager wm = (WindowManager)context.getSystemService(Context.WINDOW_SERVICE);
-                            assert wm != null;
-                            Display display = wm.getDefaultDisplay();
-                            Point size = new Point();
-                            display.getSize(size);
-                            int width = size.x;
-                            int height = size.y;
-                            if (resource.getByteCount()>width*height*4*1.5){
-                                // compress or resize here
-                                resource = scaleBitmap(resource, resource.getWidth()/2, resource.getHeight()/2);
-                            }
+                            // compress or resize here
+                            int threshold = 1024;
+                            resource = getScaledDownBitmap(resource, threshold, true);
                             super.onResourceReady(resource, transition);
                         }
                     };
-                    Glide.with(context).asBitmap().load(imgUri).into(appWidgetTarget);
-                    if (intent.getExtras().getBoolean("exist")){
-                        PendingIntent pendingIntent = PendingIntent.getActivity(context, widgetId, intent, 0);
-                        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget);
-                        views.setOnClickPendingIntent(R.id.widget_layout, pendingIntent);
-                    }
+                    RequestOptions requestOptions = new RequestOptions();
+                    requestOptions.diskCacheStrategy(DiskCacheStrategy.NONE);
+                    requestOptions.skipMemoryCache(true);
+                    Glide.with(context).asBitmap().load(imgUri).apply(requestOptions).into(appWidgetTarget);
                     AppWidgetManager.getInstance(context).updateAppWidget(widgetId, control);
                 }
             }catch (Exception ex){
@@ -109,34 +151,17 @@ public class Widget extends AppWidgetProvider {
 
     @Override
     public void onEnabled(Context context){
-        helper = new DBhelper(context,"widgetOfProvidence.db",null,1);;
-        Log.d(TAG, "onEnabled called, SQLite database created : " + helper.getDatabaseName() +  helper.getWritableDatabase().getPath());
+        super.onEnabled(context);
     }
 
     @Override
     public void onDeleted(Context context, int[] appWidgetIds) {
         super.onDeleted(context, appWidgetIds);
-        if(helper == null)
-            helper = new DBhelper(context,"widgetOfProvidence.db",null,1);;
-        for (int appWidgetId : appWidgetIds) {
-            helper.removeWidget(appWidgetId);
-        }
     }
 
     @Override
     public void onDisabled(Context context) {
         super.onDisabled(context);
-        helper.dropAllRecords();
     }
 
-    public Bitmap scaleBitmap(Bitmap bitmap, int wantedWidth, int wantedHeight) {
-        Bitmap output = Bitmap.createBitmap(wantedWidth, wantedHeight, Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(output);
-        // Using matrix as parameter
-        Matrix m = new Matrix();
-        m.setScale((float) wantedWidth / bitmap.getWidth(), (float) wantedHeight / bitmap.getHeight());
-        // Redraw bitmap using canvas
-        canvas.drawBitmap(bitmap, m, new Paint(6));
-        return output;
-    }
 }
