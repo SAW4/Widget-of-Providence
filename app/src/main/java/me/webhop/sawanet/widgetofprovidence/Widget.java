@@ -161,12 +161,16 @@ public class Widget extends AppWidgetProvider {
                             super.onResourceReady(resource, transition);
                         }
                     };
-                    Log.v(TAG, "imgUri => " + imgUri);
+//                    final int takeFlags = (Intent.FLAG_GRANT_READ_URI_PERMISSION
+//                            | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+//                    ContentResolver resolver = context.getContentResolver();
+//                    resolver.takePersistableUriPermission(imgUri, takeFlags);
                     RequestOptions requestOptions = new RequestOptions();
                     requestOptions.diskCacheStrategy(DiskCacheStrategy.NONE);
                     requestOptions.skipMemoryCache(true);
                     requestOptions.fitCenter();
                     Glide.with(context).asBitmap().load(imgUri).apply(requestOptions).into(appWidgetTarget);
+                    Log.v(TAG, "imgUri => " + imgUri);
                     AppWidgetManager.getInstance(context).updateAppWidget(widgetId, control);
                 }
             }catch (Exception ex){

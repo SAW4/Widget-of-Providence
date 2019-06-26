@@ -1,18 +1,14 @@
 package me.webhop.sawanet.widgetofprovidence;
 
-import android.app.Activity;
 import android.appwidget.AppWidgetManager;
-import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.pm.PackageManager;
-import android.content.pm.ResolveInfo;
 import android.net.Uri;
 import android.os.Build;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 
 import static android.content.ContentValues.TAG;
@@ -43,8 +39,8 @@ public class ImagePicker extends AppCompatActivity {
         img_picker.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         img_picker.setType("image/*");
 
-
         // Request code 8993 -> image picker result intent
+        // Let onActivityResult know
         startActivityForResult(Intent.createChooser(img_picker, "Select Picture"), REQUEST_CODE);
         setContentView(R.layout.activity_image_picker);
 
@@ -76,13 +72,13 @@ public class ImagePicker extends AppCompatActivity {
             widgetIntent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
             widgetIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
             widgetIntent.putExtra("uri", uri.toString());
-            widgetIntent.setFlags(data.getFlags());
 
             final int takeFlags = data.getFlags()
                     & (Intent.FLAG_GRANT_READ_URI_PERMISSION
                     | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
             ContentResolver resolver = getContentResolver();
             resolver.takePersistableUriPermission(uri, takeFlags);
+
             Log.v(TAG, "Persist-Permission => " + uri);
             Log.v(TAG, "widgetIntent uri Extra => " + uri );
             // update shared preference
