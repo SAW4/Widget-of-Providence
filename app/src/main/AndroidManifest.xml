@@ -15,6 +15,9 @@
         <receiver android:name=".Widget"
             android:enabled="true">
             <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+            <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <intent-filter android:priority="1" >
