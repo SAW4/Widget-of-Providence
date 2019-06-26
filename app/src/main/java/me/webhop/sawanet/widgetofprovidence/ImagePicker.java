@@ -40,7 +40,6 @@ public class ImagePicker extends AppCompatActivity {
         img_picker.setType("image/*");
 
         // Request code 8993 -> image picker result intent
-        // Let onActivityResult know
         startActivityForResult(Intent.createChooser(img_picker, "Select Picture"), REQUEST_CODE);
         setContentView(R.layout.activity_image_picker);
 
@@ -73,6 +72,7 @@ public class ImagePicker extends AppCompatActivity {
             widgetIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
             widgetIntent.putExtra("uri", uri.toString());
 
+            // make selected Uri grant persist permission, even reboot
             final int takeFlags = data.getFlags()
                     & (Intent.FLAG_GRANT_READ_URI_PERMISSION
                     | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
@@ -81,7 +81,8 @@ public class ImagePicker extends AppCompatActivity {
 
             Log.v(TAG, "Persist-Permission => " + uri);
             Log.v(TAG, "widgetIntent uri Extra => " + uri );
-            // update shared preference
+
+            // update shared preference, auto load after reboot
             SharedPreferences pref = getSharedPreferences(getPackageName(), Context.MODE_PRIVATE);
             pref.edit().putString(Integer.toString(appWidgetId), uri.toString()).apply();
 

@@ -115,6 +115,7 @@ public class Widget extends AppWidgetProvider {
             RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.widget);
             views.setOnClickPendingIntent(R.id.widget_layout, pendingIntent);
 
+            // if this appwidget already has image, load it with memorized path in shared preference
             if (pref_str != null){
                 // create intent to pass data back to widget (update)
                 Intent  widgetIntent = new Intent(context, Widget.class);
@@ -125,6 +126,7 @@ public class Widget extends AppWidgetProvider {
                 widgetIntent.setAction(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
                 widgetIntent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
                 widgetIntent.putExtra("uri", pref_str);
+                // call onReceive with current param
                 context.sendBroadcast(widgetIntent);
             }
             appWidgetManager.updateAppWidget(appWidgetId, views);
@@ -151,6 +153,7 @@ public class Widget extends AppWidgetProvider {
                 if (receiveData != null) {
                     Uri imgUri = Uri.parse(receiveData);
                     // Create a new remote view, change the image of it then update to the widget
+                    // each time we need to create a new remote views
                     RemoteViews control = new RemoteViews(context.getPackageName(), R.layout.widget);
                     appWidgetTarget = new AppWidgetTarget(context, R.id.widget_image, control, widgetId) {
                         @Override
@@ -165,6 +168,8 @@ public class Widget extends AppWidgetProvider {
 //                            | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
 //                    ContentResolver resolver = context.getContentResolver();
 //                    resolver.takePersistableUriPermission(imgUri, takeFlags);
+
+                    // use Glide for drawing bitmap, much more easier method
                     RequestOptions requestOptions = new RequestOptions();
                     requestOptions.diskCacheStrategy(DiskCacheStrategy.NONE);
                     requestOptions.skipMemoryCache(true);
@@ -178,20 +183,4 @@ public class Widget extends AppWidgetProvider {
             }
         }
     }
-
-    @Override
-    public void onEnabled(Context context){
-        super.onEnabled(context);
-    }
-
-    @Override
-    public void onDeleted(Context context, int[] appWidgetIds) {
-        super.onDeleted(context, appWidgetIds);
-    }
-
-    @Override
-    public void onDisabled(Context context) {
-        super.onDisabled(context);
-    }
-
 }
